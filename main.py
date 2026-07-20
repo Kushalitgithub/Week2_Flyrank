@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 
 
 # Stage-0
@@ -66,10 +66,16 @@ from fastapi import FastAPI, HTTPException
 
 # Stage-3
 # push task data to a database and fetch it from there. For now, we will use a list to store the tasks.
+
+
 from pydantic import BaseModel
 
 class TaskCreate(BaseModel):
     title: str
+
+class TaskUpdate(BaseModel):
+    title: str
+    done: bool
 
 app = FastAPI()
 tasks = [
@@ -100,6 +106,28 @@ def create_task(task: TaskCreate):
     tasks.append(new_task)
 
     return new_task
+
+
+@app.put("/tasks/{id}")
+def update_task(id: int, updated_task: TaskUpdate):
+    if updated_task.title.strip() == "":
+        raise HTTPException(status_code=400, detail="Task title cannot be empty")
+
+    for t in tasks:
+        if t["id"] == id:
+            t["title"] = updated_task.title
+            t["done"] = updated_task.done
+            return t
+        
+    raise HTTPException(status_code=404, detail=f"Task {id} not found")
+
+@app.delete("/tasks/{id}", status_code=204)
+def delete_task(id: int):
+    for t in tasks:
+        if t["id"] == id:
+            tasks.remove(t)
+            return Response(status_code=204)
+    raise HTTPException(status_code=404, detail=f"Task {id} not found")
 
 @app.get("/tasks")
 def get_tasks():
