@@ -100,7 +100,7 @@ FastAPI automatically generates interactive API documentation.
 ```
 http://127.0.0.1:8000/docs
 ```
-
+<img width="1280" height="740" alt="Image" src="https://github.com/user-attachments/assets/e2ee3f28-8a3d-4a08-88c7-e9dc437a5c13" />
 ### ReDoc
 
 ```
