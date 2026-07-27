@@ -73,22 +73,66 @@ def root():
 
 @app.get("/tasks")
 def get_tasks():
-    return tasks
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, title, done FROM tasks")
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return [
+        {
+            "id": row[0],
+            "title": row[1],
+            "done": bool(row[2])
+        }
+        for row in rows
+    ]
 
 @app.get("/tasks/{id}")
 def get_task(id: int):  
-    for task in tasks:
-        if task["id"] == id:
-            return task
-    return {"error": f"Task {id} not found"}
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
 
+    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?", (id,))
+    row = cursor.fetchone()
 
+    conn.close()
 
+    if row:
+        return {
+            "id": row[0],
+            "title": row[1],
+            "done": bool(row[2])
+        }
+    else:
+        raise HTTPException(status_code=404, detail=f"Task {id} not found")
 
-def main():
+@app.post("/tasks")
+def create_task(task: TaskCreate):
+    if task.title.strip() == "":
+        raise HTTPException(status_code=400, detail="Title cannot be empty") 
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT MAX(id) FROM tasks")
+    max_id = cursor.fetchone()[0]
+    next_id = (max_id + 1) if max_id is not None else 1
+    cursor.execute("INSERT INTO tasks (id, title, done) VALUES (?, ?, ?)", (next_id, task.title, False))
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": next_id,
+        "title": task.title,
+        "done": False
+    }
+
+@app.on_event("startup")
+def startup():
     init_db()
-    show_tasks()
 
-if __name__ == "__main__":
-    main()
+
 
